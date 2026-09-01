@@ -141,6 +141,9 @@ pub fn render(frustum: *const main.renderer.Frustum, playerPos: Vec3d, ambientLi
 		}
 	}
 
+	const playerBlock = main.renderer.mesh_storage.getBlockFromAnyLodFromRenderThread(@floor(playerPos[0]), @floor(playerPos[1]), @floor(playerPos[2]));
+	if (playerBlock.hasTag(.fluid)) return;
+
 	const lodExtent = @as(u32, settings.renderDistance)*chunk.chunkSize*(@as(u32, 1) << settings.highestLod);
 	const renderRadius: f64 = @floatFromInt(lodExtent);
 	const cellSize: f64 = @floatCast(@max(config.cellSize, 32));
