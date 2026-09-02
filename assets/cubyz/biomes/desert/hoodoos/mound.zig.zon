@@ -10,8 +10,8 @@
 	.maxHeight = 3000,
 	.keepOriginalTerrain = 0.99,
 	.roughness = 1,
-	.mountains = 50,
-	.hills = 20,
+	.mountains = 37.5,
+	.hills = 15,
 	.stoneBlock = "cubyz:sandstone/rough",
 	.structures = .{
 		.{

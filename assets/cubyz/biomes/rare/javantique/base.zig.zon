@@ -9,7 +9,7 @@
 	.maxHeightLimit = 50,
 	.minRadius = 175,
 	.maxRadius = 275,
-	.hills = 10,
+	.hills = 7.5,
 	.chance = 0.01,
 	.ground_structure = .{
 		"cubyz:grass/temperate",

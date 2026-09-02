@@ -9,9 +9,9 @@
 	.minHeight = 20,
 	.chance = 0,
 	.maxHeight = 40,
-	.hills = 15,
-	.roughness = 15,
-	.mountains = 15,
+	.hills = 11,
+	.roughness = 11,
+	.mountains = 11,
 	.music = "cubyz:sinanimea/sunrise",
 	.structures = .{
 		.{

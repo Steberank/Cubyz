@@ -8,7 +8,7 @@
 	.minRadius = 256,
 	.maxRadius = 320,
 	.roughness = 1,
-	.hills = 15,
+	.hills = 11,
 	.chance = 0.01,
 	.music = "cubyz:ikabod/chimes",
 	.validPlayerSpawn = true,

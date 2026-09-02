@@ -14,6 +14,9 @@ pub const chunkSizeIterator: [chunkSize]u0 = undefined;
 pub const chunkVolume: u31 = 1 << 3*chunkShift;
 pub const chunkMask: i32 = chunkSize - 1;
 
+/// Lowest generated block: 32 chunks of `chunkSize` below Z = 0.
+pub const worldMinZ: i32 = -@as(i32, chunkSize)*32;
+
 /// Contains a bunch of constants used to describe neighboring blocks.
 pub const Neighbor = enum(u3) { // MARK: Neighbor
 	dirUp = 0,
@@ -237,6 +240,11 @@ pub const ChunkPosition = struct { // MARK: ChunkPosition
 	pub fn initFromWorldPos(pos: Vec3i, voxelSize: u31) ChunkPosition {
 		const mask = ~@as(i32, voxelSize*chunkSize - 1);
 		return .{.wx = pos[0] & mask, .wy = pos[1] & mask, .wz = pos[2] & mask, .voxelSize = voxelSize};
+	}
+
+	pub fn isBelowWorld(self: ChunkPosition) bool {
+		const exclusiveEnd = @as(i64, self.wz) + @as(i64, self.voxelSize)*chunkSize;
+		return exclusiveEnd <= worldMinZ;
 	}
 
 	pub fn hashCode(self: ChunkPosition) u32 {

@@ -9,7 +9,7 @@
 
 	.interpolation = .linear,
 
-	.hills = 5,
+	.hills = 4,
 
 	.music = "cubyz:totaldemented/tides",
 

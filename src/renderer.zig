@@ -1082,6 +1082,7 @@ pub const MeshSelection = struct { // MARK: MeshSelection
 				currentBlockProgress = 0;
 			}
 			const block = mesh_storage.getBlockFromRenderThread(selectedPos[0], selectedPos[1], selectedPos[2]) orelse return;
+			if (block.hasTag(.unbreakable)) return;
 			const holdingTargetedBlock = stack.item == .baseItem and stack.item.baseItem.block() == block.typ;
 			if ((block.hasTag(.fluid) or block.hasTag(.air)) and !holdingTargetedBlock) return;
 

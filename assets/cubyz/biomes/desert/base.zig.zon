@@ -14,7 +14,7 @@
 	.maxHeightLimit = 50,
 	.minRadius = 512,
 	.maxRadius = 640,
-	.hills = 20,
+	.hills = 15,
 	.validPlayerSpawn = false,
 
 	.music = "cubyz:mischol/desert_firefly",

@@ -9,7 +9,7 @@
 	.maxHeightLimit = 60,
 	.smoothBeaches = true,
 	.roughness = 1,
-	.hills = 6,
+	.hills = 4.5,
 	.music = "cubyz:mischol/simmer",
 	.validPlayerSpawn = true,
 	.ground_structure = .{

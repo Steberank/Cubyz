@@ -5,8 +5,8 @@
 	.minHeight = 1500,
 	.maxHeight = 3000,
 	.keepOriginalTerrain = 0.99,
-	.mountains = 50,
-	.hills = 20,
+	.mountains = 37.5,
+	.hills = 15,
 	.stoneBlock = "cubyz:glacite/smooth",
 	.ground_structure = .{
 		"1 cubyz:snow",

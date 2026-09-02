@@ -12,8 +12,8 @@
 	.smoothBeaches = true,
 	.minRadius = 256,
 	.maxRadius = 320,
-	.roughness = 10,
-	.hills = 10,
+	.roughness = 7.5,
+	.hills = 7.5,
 	.validPlayerSpawn = true,
 	.ground_structure = .{
 		"0 to 1 cubyz:grass/temperate",

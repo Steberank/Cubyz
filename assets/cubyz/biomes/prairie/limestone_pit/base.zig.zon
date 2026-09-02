@@ -9,7 +9,7 @@
 	.minHeight = 30,
 	.maxHeight = 36,
 	.roughness = 1,
-	.hills = 10,
+	.hills = 7.5,
 	.stoneBlock = "cubyz:limestone/smooth",
 	.parentBiomes = .{
 		.{

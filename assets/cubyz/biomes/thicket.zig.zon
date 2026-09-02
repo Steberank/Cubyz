@@ -11,8 +11,8 @@
 	.minHeight = 22,
 	.maxHeight = 40,
 
-	.roughness = 10,
-	.hills = 10,
+	.roughness = 7.5,
+	.hills = 7.5,
 
 	.music = "cubyz:totaldemented/leaves",
 

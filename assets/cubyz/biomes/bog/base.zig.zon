@@ -14,7 +14,7 @@
 	.minRadius = 150,
 	.maxRadius = 300,
 	.roughness = 1,
-	.hills = 2,
+	.hills = 1.5,
 	.chance = 0.8,
 	.music = "cubyz:totaldemented/leaves",
 	.validPlayerSpawn = true,

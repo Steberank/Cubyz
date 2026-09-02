@@ -8,8 +8,8 @@
 	.maxHeightLimit = 60,
 	.smoothBeaches = true,
 
-	.roughness = 10,
-	.hills = 10,
+	.roughness = 7.5,
+	.hills = 7.5,
 
 	.chance = 0.01,
 

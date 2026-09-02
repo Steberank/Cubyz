@@ -14,8 +14,8 @@
 	.maxHeightLimit = 55,
 	.minRadius = 256,
 	.maxRadius = 320,
-	.roughness = 5,
-	.hills = 10,
+	.roughness = 4,
+	.hills = 7.5,
 	.rivers = true,
 	.chance = 0.5,
 

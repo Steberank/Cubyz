@@ -8,7 +8,7 @@
 	.minRadius = 256,
 	.maxRadius = 320,
 	.roughness = 1,
-	.hills = 8,
+	.hills = 6,
 	.chance = 0.01,
 	.validPlayerSpawn = false,
 	.stoneBlock = "cubyz:cloth/block/grey",

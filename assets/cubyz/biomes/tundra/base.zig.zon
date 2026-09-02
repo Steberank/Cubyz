@@ -9,9 +9,9 @@
 	.maxHeightLimit = 60,
 	.minRadius = 256,
 	.maxRadius = 320,
-	.roughness = 2,
-	.hills = 15,
-	.mountains = 20,
+	.roughness = 1.5,
+	.hills = 11,
+	.mountains = 15,
 	.chance = 0.5,
 	.ground_structure = .{
 		"0 to 1 cubyz:grass/cold",

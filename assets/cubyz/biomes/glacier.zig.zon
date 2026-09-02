@@ -16,9 +16,9 @@
 	.fogColor = 0xe2f2ff,
 	.minRadius = 150,
 	.maxRadius = 300,
-	.roughness = 50,
-	.mountains = 50,
-	.hills = 50,
+	.roughness = 37.5,
+	.mountains = 37.5,
+	.hills = 37.5,
 
 	.ground_structure = .{
 		"3 to 5 cubyz:snow",

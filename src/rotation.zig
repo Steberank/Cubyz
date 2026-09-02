@@ -102,6 +102,7 @@ pub const RotationMode = struct { // MARK: RotationMode
 		pub fn canBeChangedInto(oldBlock: Block, newBlock: Block, item: main.items.ItemStack, shouldDropSourceBlockOnSuccess: *bool) CanBeChangedInto {
 			shouldDropSourceBlockOnSuccess.* = true;
 			if (oldBlock == newBlock) return .no;
+			if (oldBlock.hasTag(.unbreakable) and oldBlock.typ != newBlock.typ) return .no;
 			if (oldBlock.typ == newBlock.typ) return .yes;
 			var damage: f32 = main.game.Player.defaultBlockDamage;
 			const isProceduralItem = item.item == .proceduralItem;

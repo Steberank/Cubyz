@@ -13,8 +13,8 @@
 	.maxHeightLimit = 100,
 	.minRadius = 256,
 	.maxRadius = 320,
-	.roughness = 6,
-	.hills = 10,
+	.roughness = 4.5,
+	.hills = 7.5,
 	.rivers = true,
 	.music = "cubyz:mischol/desert_firefly",
 

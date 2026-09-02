@@ -355,14 +355,22 @@ pub const FrictionState = struct {
 	mobile: f32,
 };
 
+fn canSimulateAt(comptime side: main.sync.Side, pos: Vec3d) bool {
+	if (main.game.getBlockWithSide(side, @floor(pos[0]), @floor(pos[1]), @floor(pos[2])) != null) return true;
+	// Ghost must keep moving in unloaded space (e.g. below the world bottom).
+	// Do not key this off isFlying: ghost mode also sets isFlying.
+	if (side == .client and Player.isGhost.load(.monotonic)) return true;
+	return false;
+}
+
 pub fn calculateVolumeProperties(comptime side: main.sync.Side, volumeProperties: *collision.VolumeProperties, pos: @Vector(3, f64), hitBox: collision.Box, airTerminalVelocity: f64) void {
-	if (main.game.getBlockWithSide(side, @floor(pos[0]), @floor(pos[1]), @floor(pos[2])) != null) {
+	if (canSimulateAt(side, pos)) {
 		volumeProperties.* = collision.calculateVolumeProperties(side, pos, hitBox, .{.density = airDensity, .terminalVelocity = airTerminalVelocity, .maxDensity = airDensity, .mobileFriction = 1.0/airTerminalVelocity});
 	}
 }
 
 pub fn calculateFriction(comptime side: main.sync.Side, volumeProperties: *const collision.VolumeProperties, friction: *FrictionState, pos: @Vector(3, f64), hitBox: collision.Box, onGround: bool) void {
-	if (main.game.getBlockWithSide(side, @floor(pos[0]), @floor(pos[1]), @floor(pos[2])) != null) {
+	if (canSimulateAt(side, pos)) {
 		const groundFriction = if (!onGround) 0 else collision.calculateSurfaceProperties(side, pos, hitBox, 20).friction;
 		const volumeFrictionCoeffecient: f32 = @floatCast(baseGravity/volumeProperties.terminalVelocity);
 		const mobileFriction: f32 = @floatCast(baseGravity*volumeProperties.mobileFriction);
@@ -374,7 +382,7 @@ pub fn calculateFriction(comptime side: main.sync.Side, volumeProperties: *const
 pub fn calculateMotion(comptime side: main.sync.Side, deltaTime: f64, friction: FrictionState, volumeProperties: collision.VolumeProperties, density: f64, pos: Vec3d, velocity: *Vec3d, inputAcc: Vec3d, gravity: f64, jumpHeight: f64) Vec3d {
 	var move: Vec3d = .{0, 0, 0};
 
-	if (main.game.getBlockWithSide(side, @floor(pos[0]), @floor(pos[1]), @floor(pos[2])) != null) {
+	if (canSimulateAt(side, pos)) {
 		const effectiveGravity = gravity*(density - volumeProperties.density)/density;
 		const volumeFrictionCoeffecient: f32 = @floatCast(baseGravity/volumeProperties.terminalVelocity);
 
@@ -418,7 +426,7 @@ pub fn calculateMotion(comptime side: main.sync.Side, deltaTime: f64, friction: 
 }
 
 pub fn calculateEyeMovement(comptime side: main.sync.Side, deltaTime: f64, pos: Vec3d, vel: Vec3d, eye: *Player.EyeData, stepAmount: f64) void {
-	if (main.game.getBlockWithSide(side, @floor(pos[0]), @floor(pos[1]), @floor(pos[2])) != null) {
+	if (canSimulateAt(side, pos)) {
 		var directionalFrictionCoefficients: Vec3f = @splat(0);
 		var acc: Vec3d = @splat(0);
 		// Apply springs to the eye position:

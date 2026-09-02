@@ -1,4 +1,5 @@
 .{
+	.chance = 4,
 	.properties = .{
 		.hot,
 		.ocean,

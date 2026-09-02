@@ -1582,7 +1582,11 @@ pub const Command = struct { // MARK: Command
 			const stack = self.source.ref();
 
 			var shouldDropSourceBlockOnSuccess: bool = true;
-			const costOfChange = if (ctx.gamemode != .creative) self.oldBlock.canBeChangedInto(self.newBlock, stack.*, &shouldDropSourceBlockOnSuccess) else .yes;
+			const costOfChange = blk: {
+				if (self.oldBlock.hasTag(.unbreakable) and self.oldBlock.typ != self.newBlock.typ) break :blk .no;
+				if (ctx.gamemode != .creative) break :blk self.oldBlock.canBeChangedInto(self.newBlock, stack.*, &shouldDropSourceBlockOnSuccess);
+				break :blk .yes;
+			};
 
 			// Check if we can change it:
 			if (!switch (costOfChange) {

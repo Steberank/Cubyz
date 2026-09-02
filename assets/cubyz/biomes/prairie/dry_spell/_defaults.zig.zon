@@ -11,7 +11,7 @@
 	.minHeight = 35,
 	.maxHeight = 40,
 	.roughness = 1,
-	.hills = 3,
+	.hills = 2,
 	.music = "cubyz:mischol/simmer",
 	.ground_structure = .{
 		"4 to 5 cubyz:limestone/smooth",

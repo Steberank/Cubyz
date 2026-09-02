@@ -7,8 +7,8 @@
 	.maxHeight = -64,
 	.maxHeightLimit = -48,
 	.music = "cubyz:totaldemented/tides",
-	.hills = 35,
-	.roughness = 55,
+	.hills = 26,
+	.roughness = 41,
 	.stoneBlock = "cubyz:chalk/black",
 	.ground_structure = .{
 		"0 to 2 cubyz:obsidian",

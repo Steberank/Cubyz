@@ -4,9 +4,9 @@
 	.maxHeight = 85,
 	.minRadius = 16,
 	.maxRadius = 36,
-	.roughness = 24,
+	.roughness = 18,
 	.chance = 0,
-	.hills = 2,
+	.hills = 1.5,
 	.interpolation = .linear,
 	.stoneBlock = "cubyz:obsidian",
 	.structures = .{

@@ -161,6 +161,7 @@ pub fn getLightMapPiece(x: i32, y: i32, voxelSize: u31) ?*LightMap.LightMapFragm
 }
 
 pub fn getBlockFromRenderThread(x: i32, y: i32, z: i32) ?blocks.Block {
+	if (z < chunk.worldMinZ) return blocks.Block.air;
 	const node = getNodePointer(.{.wx = x, .wy = y, .wz = z, .voxelSize = 1});
 	const mesh = node.mesh.load(.acquire) orelse return null;
 	const block = mesh.chunk.getBlock(x & chunk.chunkMask, y & chunk.chunkMask, z & chunk.chunkMask);
@@ -247,6 +248,7 @@ fn isInRenderDistance(pos: chunk.ChunkPosition) bool { // MARK: isInRenderDistan
 	const maxZ = lastPz +% maxZRenderDistance +% size & invMask;
 	if (pos.wz -% minZ < 0) return false;
 	if (pos.wz -% maxZ >= 0) return false;
+	if (pos.isBelowWorld()) return false;
 	return true;
 }
 
@@ -470,6 +472,18 @@ fn createNewMeshes(olderPx: i32, olderPy: i32, olderPz: i32, olderRD: u16, meshR
 					const zIndex = @divExact(z, size) & storageMask;
 					const index = (xIndex*storageSize + yIndex)*storageSize + zIndex;
 					const pos = chunk.ChunkPosition{.wx = x, .wy = y, .wz = z, .voxelSize = @as(u31, 1) << lod};
+					if (pos.isBelowWorld()) {
+						const node = &storageLists[_lod][@intCast(index)];
+						const oldMesh = node.mesh.swap(null, .monotonic);
+						node.finishedMeshing = false;
+						node.pos = undefined;
+						node.isNeighborLod = @splat(false);
+						if (oldMesh) |mesh| {
+							updateHigherLodNodeFinishedMeshing(mesh.pos, false);
+							mesh.deferredDeinit();
+						}
+						continue;
+					}
 
 					const node = &storageLists[_lod][@intCast(index)];
 					node.pos = pos;
@@ -621,8 +635,9 @@ pub noinline fn updateAndGetRenderChunks(conn: *network.Connection, frustum: *co
 					.wz = pos.wz +% neighbor.relZ()*chunk.chunkSize*pos.voxelSize,
 					.voxelSize = pos.voxelSize,
 				};
+				if (neighborPos.isBelowWorld()) continue;
 				const node2 = getNodePointer(neighborPos);
-				if (!node2.active and node2.finishedMeshing) {
+				if (!node2.active and node2.finishedMeshing and std.meta.eql(node2.pos, neighborPos)) {
 					const relPosFloat: Vec3f = @floatCast(@as(Vec3d, @floatFromInt(Vec3i{pos.wx, pos.wy, pos.wz})) - playerPos);
 					if (!frustum.testAAB(relPosFloat + @as(Vec3f, @floatFromInt(neighbor.relPos()*chunkSizeVector)), @floatFromInt(chunkSizeVector))) continue;
 					node2.active = true;

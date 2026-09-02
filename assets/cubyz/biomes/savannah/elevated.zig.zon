@@ -11,9 +11,9 @@
 	.maxHeight = 65,
 	.minRadius = 80,
 	.maxRadius = 128,
-	.roughness = 15,
+	.roughness = 11,
 	.chance = 0,
-	.hills = 2,
+	.hills = 1.5,
 	.validPlayerSpawn = true,
 	.ground_structure = .{
 		"cubyz:grass/temperate",

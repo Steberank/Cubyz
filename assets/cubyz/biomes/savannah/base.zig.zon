@@ -14,7 +14,7 @@
 	.smoothBeaches = true,
 	.minRadius = 256,
 	.maxRadius = 320,
-	.hills = 6,
+	.hills = 4.5,
 	.validPlayerSpawn = true,
 	.music = "cubyz:mischol/desert_firefly",
 	.ground_structure = .{

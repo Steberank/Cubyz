@@ -423,6 +423,7 @@ fn getLightAt(parent: *ChunkMesh, x: i32, y: i32, z: i32) LightVector {
 	const wx = parent.pos.wx +% x*parent.pos.voxelSize;
 	const wy = parent.pos.wy +% y*parent.pos.voxelSize;
 	const wz = parent.pos.wz +% z*parent.pos.voxelSize;
+	if (wz < chunk.worldMinZ) return @splat(0);
 	const neighborMesh = mesh_storage.getMesh(.{.wx = wx, .wy = wy, .wz = wz, .voxelSize = parent.pos.voxelSize}) orelse return @splat(0);
 	return getValues(neighborMesh, pos);
 }

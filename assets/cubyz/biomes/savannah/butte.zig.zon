@@ -8,9 +8,9 @@
 	.maxHeight = 100,
 	.minRadius = 33,
 	.maxRadius = 48,
-	.roughness = 15,
+	.roughness = 11,
 	.chance = 0,
-	.hills = 40,
+	.hills = 30,
 	.stripes = .{
 		.{
 			.direction = .{1, 1, 5},

@@ -6,7 +6,7 @@
 	.maxHeightLimit = 60,
 	.radius = 48,
 	.keepOriginalTerrain = 0.5,
-	.hills = 2,
+	.hills = 1.5,
 	.fogDensity = 35,
 	.fogColor = 0xf1fbf7,
 

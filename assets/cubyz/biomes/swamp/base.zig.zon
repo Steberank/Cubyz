@@ -13,7 +13,7 @@
 	.maxHeightLimit = 10,
 	.minRadius = 256,
 	.maxRadius = 320,
-	.roughness = 3,
+	.roughness = 2,
 	.hills = 1,
 	.chance = 1.0,
 	.music = "cubyz:totaldemented/leaves",

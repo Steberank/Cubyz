@@ -11,8 +11,8 @@
 	.minHeight = 22,
 	.maxHeight = 40,
 	.maxHeightLimit = 60,
-	.hills = 15,
-	.mountains = 8,
+	.hills = 11,
+	.mountains = 6,
 	.stoneBlock = "cubyz:glacite/smooth",
 	.ground_structure = .{
 		"2 to 3 cubyz:snow",

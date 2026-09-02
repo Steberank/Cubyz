@@ -518,7 +518,8 @@ const GenerationStructure = struct { // MARK: GenerationStructure
 	}
 
 	pub fn toMap(self: GenerationStructure, map: *ClimateMapFragment, worldSeed: u64) void {
-		var preMap: [preMapSize][preMapSize]BiomeSample = undefined;
+		const preMap = main.stackAllocator.create([preMapSize][preMapSize]BiomeSample);
+		defer main.stackAllocator.destroy(preMap);
 		var allCandidates: main.List(*BiomePoint) = .initCapacity(main.stackAllocator, 1024);
 		defer allCandidates.deinit(main.stackAllocator);
 		for (self.chunks.mem) |chunk| {
@@ -526,20 +527,20 @@ const GenerationStructure = struct { // MARK: GenerationStructure
 				allCandidates.append(main.stackAllocator, candidate);
 			}
 		}
-		fillRecursively(map.pos.wx, map.pos.wy, &preMap, allCandidates.items, worldSeed, -margin, -margin, preMapSize, preMapSize);
-		addTransitionBiomes(&preMap);
+		fillRecursively(map.pos.wx, map.pos.wy, preMap, allCandidates.items, worldSeed, -margin, -margin, preMapSize, preMapSize);
+		addTransitionBiomes(preMap);
 
 		// Add some sub-biomes:
 		var extraBiomes: main.ListManaged(BiomePoint) = .init(main.stackAllocator);
 		defer extraBiomes.deinit();
 		for (self.chunks.mem) |chunk| {
 			for (chunk.biomesSortedByX) |biome| {
-				addSubBiomesOf(biome, &preMap, &extraBiomes, map.pos.wx -% margin*terrain.SurfaceMap.MapFragment.biomeSize, map.pos.wy -% margin*terrain.SurfaceMap.MapFragment.biomeSize, preMapSize*terrain.SurfaceMap.MapFragment.biomeSize, preMapSize*terrain.SurfaceMap.MapFragment.biomeSize, worldSeed, .unknown);
+				addSubBiomesOf(biome, preMap, &extraBiomes, map.pos.wx -% margin*terrain.SurfaceMap.MapFragment.biomeSize, map.pos.wy -% margin*terrain.SurfaceMap.MapFragment.biomeSize, preMapSize*terrain.SurfaceMap.MapFragment.biomeSize, preMapSize*terrain.SurfaceMap.MapFragment.biomeSize, worldSeed, .unknown);
 			}
 		}
 		// Add some sub-sub(-sub)*-biomes
 		while (extraBiomes.popOrNull()) |biomePoint| {
-			addSubBiomesOf(biomePoint, &preMap, &extraBiomes, map.pos.wx -% margin*terrain.SurfaceMap.MapFragment.biomeSize, map.pos.wy -% margin*terrain.SurfaceMap.MapFragment.biomeSize, preMapSize*terrain.SurfaceMap.MapFragment.biomeSize, preMapSize*terrain.SurfaceMap.MapFragment.biomeSize, worldSeed, .known);
+			addSubBiomesOf(biomePoint, preMap, &extraBiomes, map.pos.wx -% margin*terrain.SurfaceMap.MapFragment.biomeSize, map.pos.wy -% margin*terrain.SurfaceMap.MapFragment.biomeSize, preMapSize*terrain.SurfaceMap.MapFragment.biomeSize, preMapSize*terrain.SurfaceMap.MapFragment.biomeSize, worldSeed, .known);
 		}
 		for (0..ClimateMapFragment.mapEntrysSize) |_x| {
 			@memcpy(&map.map[_x], preMap[_x + margin][margin..][0..ClimateMapFragment.mapEntrysSize]);

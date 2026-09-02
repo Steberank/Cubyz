@@ -9,7 +9,7 @@
 	.keepOriginalTerrain = 1,
 	.smoothBeaches = true,
 	.roughness = 1,
-	.hills = 8,
+	.hills = 6,
 	.validPlayerSpawn = false,
 	.stoneBlock = "cubyz:cloth/block/grey",
 	.ground_structure = .{

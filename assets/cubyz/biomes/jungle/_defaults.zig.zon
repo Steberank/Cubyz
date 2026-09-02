@@ -4,7 +4,7 @@
 	.validPlayerSpawn = true,
 	.smoothBeaches = true,
 	.music = "cubyz:totaldemented/leaves",
-	.roughness = 2,
+	.roughness = 1.5,
 	.properties = .{
 		.wet,
 		.hot,

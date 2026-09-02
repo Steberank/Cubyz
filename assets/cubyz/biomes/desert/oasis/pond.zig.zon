@@ -8,7 +8,7 @@
 	.maxHeightLimit = -1,
 	.minRadius = 30,
 	.maxRadius = 45,
-	.hills = 5,
+	.hills = 4,
 	.parentBiomes = .{
 		.{
 			.id = "cubyz:desert/oasis/base",

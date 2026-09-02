@@ -394,41 +394,55 @@ const PrimitiveMesh = struct { // MARK: PrimitiveMesh
 			len += list[i].len;
 		}
 
+		if (len > maxQuadsInIndexBuffer) {
+			std.log.warn("Chunk mesh at lod {} has {} faces, clamping to {} to avoid GPU index overflow", .{self.lod, len, maxQuadsInIndexBuffer});
+			len = maxQuadsInIndexBuffer;
+		}
+
 		const fullBuffer = faceBuffers[self.lod].allocateAndMapRange(len, &self.bufferAllocation);
 		defer faceBuffers[self.lod].unmapRange(fullBuffer);
 		// Sort the faces by normal to allow for backface culling on the GPU:
 		var i: u32 = 0;
 		var iStart = i;
+		const limit: u32 = @intCast(fullBuffer.len);
 		for (0..7) |normal| {
-			for (coreList) |face| {
-				if (face.blockAndQuad.quadIndex.extraQuadInfo().alignedNormalDirection) |normalDir| {
-					if (normalDir.toInt() == normal) {
+			if (i < limit) {
+				for (coreList) |face| {
+					if (i >= limit) break;
+					if (face.blockAndQuad.quadIndex.extraQuadInfo().alignedNormalDirection) |normalDir| {
+						if (normalDir.toInt() == normal) {
+							fullBuffer[i] = face;
+							i += 1;
+						}
+					} else if (normal == 6) {
 						fullBuffer[i] = face;
 						i += 1;
 					}
-				} else if (normal == 6) {
-					fullBuffer[i] = face;
-					i += 1;
 				}
-			}
-			if (normal < 6) {
-				const normalDir: chunk.Neighbor = @enumFromInt(normal);
-				@memcpy(fullBuffer[i..][0..list[normalDir.reverse().toInt()].len], list[normalDir.reverse().toInt()]);
-				i += @intCast(list[normalDir.reverse().toInt()].len);
+				if (normal < 6) {
+					const normalDir: chunk.Neighbor = @enumFromInt(normal);
+					const src = list[normalDir.reverse().toInt()];
+					const copyLen: u32 = @intCast(@min(src.len, limit - i));
+					@memcpy(fullBuffer[i..][0..copyLen], src[0..copyLen]);
+					i += copyLen;
+				}
 			}
 			self.byNormalCount[normal] = i - iStart;
 			iStart = i;
 		}
 		for (0..7) |normal| {
-			for (optionalList) |face| {
-				if (face.blockAndQuad.quadIndex.extraQuadInfo().alignedNormalDirection) |normalDir| {
-					if (normalDir.toInt() == normal) {
+			if (i < limit) {
+				for (optionalList) |face| {
+					if (i >= limit) break;
+					if (face.blockAndQuad.quadIndex.extraQuadInfo().alignedNormalDirection) |normalDir| {
+						if (normalDir.toInt() == normal) {
+							fullBuffer[i] = face;
+							i += 1;
+						}
+					} else if (normal == 6) {
 						fullBuffer[i] = face;
 						i += 1;
 					}
-				} else if (normal == 6) {
-					fullBuffer[i] = face;
-					i += 1;
 				}
 			}
 			self.byNormalCount[normal + 7] = i - iStart;
@@ -616,10 +630,18 @@ pub const ChunkMesh = struct { // MARK: ChunkMesh
 					pos.wx +%= pos.voxelSize*chunk.chunkSize*dx;
 					pos.wy +%= pos.voxelSize*chunk.chunkSize*dy;
 					pos.wz +%= pos.voxelSize*chunk.chunkSize*dz;
-					const neighborMesh = mesh_storage.getMesh(pos) orelse continue;
-
 					const shiftSelf: u5 = @intCast(((dx + 1)*3 + dy + 1)*3 + dz + 1);
 					const shiftOther: u5 = @intCast(((-dx + 1)*3 + -dy + 1)*3 + -dz + 1);
+					const neighborMesh = mesh_storage.getMesh(pos) orelse {
+						// Chunks below the world bottom are never loaded. Count them as already
+						// lit so the 27-neighbor mask can complete and this mesh is generated.
+						if (pos.isBelowWorld()) {
+							if (self.litNeighbors.fetchOr(@as(u27, 1) << shiftSelf, .monotonic) ^ @as(u27, 1) << shiftSelf == ~@as(u27, 0)) {
+								self.generateMesh(&lightRefreshList);
+							}
+						}
+						continue;
+					};
 					if (neighborMesh.litNeighbors.fetchOr(@as(u27, 1) << shiftOther, .monotonic) ^ @as(u27, 1) << shiftOther == ~@as(u27, 0)) { // Trigger mesh creation for neighbor
 						neighborMesh.generateMesh(&lightRefreshList);
 					}

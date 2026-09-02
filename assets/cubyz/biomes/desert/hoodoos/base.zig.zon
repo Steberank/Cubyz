@@ -9,7 +9,7 @@
 	.maxHeightLimit = 50,
 	.minRadius = 150,
 	.maxRadius = 240,
-	.hills = 15,
+	.hills = 11,
 	.validPlayerSpawn = false,
 	.structures = .{
 		.{

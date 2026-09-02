@@ -198,6 +198,13 @@ pub const ChunkManager = struct { // MARK: ChunkManager
 		};
 
 		pub fn scheduleAndDecreaseRefCount(pos: ChunkPosition, source: Source) void {
+			if (pos.isBelowWorld()) {
+				switch (source) {
+					.player => {},
+					.simulationChunk => |ch| ch.decreaseRefCount(),
+				}
+				return;
+			}
 			const task = main.globalAllocator.create(ChunkLoadTask);
 			task.* = ChunkLoadTask{
 				.pos = pos,
@@ -343,6 +350,7 @@ pub const ChunkManager = struct { // MARK: ChunkManager
 	}
 
 	pub fn queueChunk(self: ChunkManager, pos: ChunkPosition, source: *User) void {
+		if (pos.isBelowWorld()) return;
 		_ = self;
 		ChunkLoadTask.scheduleAndDecreaseRefCount(pos, .{.player = source.playerIndex});
 	}
@@ -362,6 +370,14 @@ pub const ChunkManager = struct { // MARK: ChunkManager
 	}
 
 	fn chunkInitFunctionForCacheAndIncreaseRefCount(pos: ChunkPosition) *ServerChunk {
+		if (pos.isBelowWorld()) {
+			const ch = ServerChunk.initAndIncreaseRefCount(pos);
+			ch.mutex.lock();
+			defer ch.mutex.unlock();
+			ch.generated = true;
+			ch.super.data.fillUniform(.{.typ = 0, .data = 0});
+			return ch;
+		}
 		if (pos.voxelSize == 1) {
 			if (getSimulationChunkAndIncreaseRefCount(pos)) |simulationChunk| { // Check if we already have it in memory.
 				defer simulationChunk.decreaseRefCount();
@@ -1190,6 +1206,7 @@ pub const ServerWorld = struct { // MARK: ServerWorld
 	}
 
 	pub fn getBlock(self: *ServerWorld, x: i32, y: i32, z: i32) ?Block {
+		if (z < chunk.worldMinZ) return Block.air;
 		const chunkPos = Vec3i{x, y, z} & ~@as(Vec3i, @splat(main.chunk.chunkMask));
 		const otherChunk = self.getSimulationChunkAndIncreaseRefCount(chunkPos[0], chunkPos[1], chunkPos[2]) orelse return null;
 		defer otherChunk.decreaseRefCount();
@@ -1226,6 +1243,10 @@ pub const ServerWorld = struct { // MARK: ServerWorld
 				baseChunk.mutex.unlock();
 				return currentBlock;
 			}
+		}
+		if (currentBlock.hasTag(.unbreakable) and currentBlock.typ != _newBlock.typ) {
+			baseChunk.mutex.unlock();
+			return currentBlock;
 		}
 		baseChunk.mutex.unlock();
 

@@ -5,8 +5,8 @@
 	.chance = 0,
 	.minHeight = 5,
 	.maxHeight = 10,
-	.roughness = 3,
-	.hills = 3,
+	.roughness = 2,
+	.hills = 2,
 	.stoneBlock = "cubyz:chalk/black",
 	.parentBiomes = .{
 		.{

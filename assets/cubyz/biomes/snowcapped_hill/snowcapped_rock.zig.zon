@@ -6,8 +6,8 @@
 	.maxHeight = 4500,
 	.keepOriginalTerrain = 0.99,
 	.roughness = 1,
-	.mountains = 70,
-	.hills = 20,
+	.mountains = 52.5,
+	.hills = 15,
 	.ground_structure = .{
 		"2 to 4 cubyz:snow",
 	},

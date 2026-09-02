@@ -5,8 +5,8 @@
 	.maxHeightLimit = 30,
 	.minRadius = 256,
 	.maxRadius = 320,
-	.hills = 15,
-	.mountains = 15,
+	.hills = 11,
+	.mountains = 11,
 	.stoneBlock = "cubyz:glacite/smooth",
 	.chance = 0.5,
 	.ground_structure = .{

@@ -11,8 +11,8 @@
 	.minRadius = 256,
 	.maxRadius = 320,
 	.roughness = 1,
-	.hills = 5,
-	.chance = 2,
+	.hills = 4,
+	.chance = 3,
 	.music = "cubyz:sinanimea/sunrise",
 	.validPlayerSpawn = true,
 	.ground_structure = .{

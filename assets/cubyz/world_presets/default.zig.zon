@@ -7,7 +7,7 @@
 	},
 	.climateWavelengths = .{
 		.hot_cold = 2400,
-		.land_ocean = 3200,
+		.land_ocean = 6400,
 		.wet_dry = 1800,
 		.vegetation = 1600,
 		.mountain = 512,

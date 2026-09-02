@@ -1,5 +1,5 @@
 .{
-	.chance = 0.1,
+	.chance = 0.4,
 	.properties = .{
 		.hot,
 		.ocean,

@@ -8,8 +8,8 @@
 	.minRadius = 32,
 	.maxRadius = 48,
 	.chance = 0,
-	.roughness = 4,
-	.hills = 3,
+	.roughness = 3,
+	.hills = 2,
 	.music = "cubyz:totaldemented/leaves",
 	.ground_structure = .{
 		"4 to 5 cubyz:mud",
