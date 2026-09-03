@@ -896,6 +896,7 @@ pub const MeshSelection = struct { // MARK: MeshSelection
 		lowerBounds: c_int,
 		upperBounds: c_int,
 		lineSize: c_int,
+		lineColor: c_int,
 	} = undefined;
 
 	pub fn init() void {
@@ -1165,7 +1166,13 @@ pub const MeshSelection = struct { // MARK: MeshSelection
 	}
 
 	pub fn drawCube(relativePositionToPlayer: Vec3d, min: Vec3f, max: Vec3f) void {
+		drawCubeColored(relativePositionToPlayer, min, max, 1.0/128.0, .{0, 0, 0, 1}, true);
+	}
+
+	pub fn drawCubeColored(relativePositionToPlayer: Vec3d, min: Vec3f, max: Vec3f, lineSize: f32, color: Vec4f, testDepth: bool) void {
 		pipeline.bind(null);
+		if (!testDepth) c.glDisable(c.GL_DEPTH_TEST);
+		defer if (!testDepth) c.glEnable(c.GL_DEPTH_TEST);
 
 		c.glUniform3f(
 			uniforms.modelPosition,
@@ -1175,7 +1182,8 @@ pub const MeshSelection = struct { // MARK: MeshSelection
 		);
 		c.glUniform3f(uniforms.lowerBounds, min[0], min[1], min[2]);
 		c.glUniform3f(uniforms.upperBounds, max[0], max[1], max[2]);
-		c.glUniform1f(uniforms.lineSize, 1.0/128.0);
+		c.glUniform1f(uniforms.lineSize, lineSize);
+		c.glUniform4f(uniforms.lineColor, color[0], color[1], color[2], color[3]);
 
 		main.renderer.chunk_meshing.vao.bind();
 		c.glDrawElements(c.GL_TRIANGLES, 12*6*6, c.GL_UNSIGNED_INT, null);

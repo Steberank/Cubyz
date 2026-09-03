@@ -1,0 +1,365 @@
+#version 460
+
+layout(local_size_x = 8, local_size_y = 4, local_size_z = 8) in;
+
+#include "noise.glsl"
+
+struct NoiseLayer {
+	float height;
+	float heightOffset;
+	float fadeDistance;
+	float scaleX;
+	float scaleY;
+	float scaleZ;
+	float valueOffset;
+	float valueScale;
+};
+
+struct LayerGroup {
+	int startIndex;
+	int endIndex;
+	float storminess;
+	float stormStart;
+	float stormFadeDistance;
+	float pad0;
+	float pad1;
+	float pad2;
+};
+
+struct GpuRegion {
+	float posX;
+	float posY;
+	float radius;
+	float stretch;
+	float rotation;
+	float typeIndex;
+	float opacity;
+	float pad1;
+};
+
+struct SideInfo {
+	int side;
+	float x;
+	float y;
+	float z;
+	float brightness;
+	float radius;
+	float opacity;
+};
+
+struct Occupancy {
+	uint key;
+	float fade;
+	float lodFade;
+	float lodHold;
+};
+
+struct DrawArraysIndirectCommand {
+	uint count;
+	uint instanceCount;
+	uint first;
+	uint baseInstance;
+};
+
+layout(std430, binding = 17) buffer _cmd {
+	DrawArraysIndirectCommand cmd;
+};
+
+layout(std430, binding = 18) restrict writeonly buffer _sides {
+	SideInfo data[];
+} sides;
+
+layout(std430, binding = 19) readonly buffer _layers {
+	NoiseLayer data[];
+} layers;
+
+layout(std430, binding = 20) readonly buffer _groups {
+	LayerGroup data[];
+} groups;
+
+layout(std430, binding = 21) readonly buffer _regions {
+	GpuRegion data[];
+} regions;
+
+layout(std430, binding = 22) buffer _occupancy {
+	Occupancy data[];
+} occupancy;
+
+layout(location = 0) uniform vec3 gridOrigin;
+layout(location = 1) uniform vec3 playerPos;
+layout(location = 2) uniform float voxelSize;
+layout(location = 3) uniform vec3 scroll;
+layout(location = 4) uniform int regionCount;
+layout(location = 5) uniform uint maxSides;
+layout(location = 6) uniform float edgeFade;
+layout(location = 7) uniform float innerRadius;
+layout(location = 8) uniform float outerRadius;
+layout(location = 9) uniform float fadeDt;
+layout(location = 10) uniform float lodFadeDt;
+layout(location = 11) uniform float frameDt;
+layout(location = 12) uniform float lodHoldTime;
+layout(location = 13) uniform uint occupancyOffset;
+layout(location = 14) uniform uint gridX;
+layout(location = 15) uniform uint gridY;
+layout(location = 16) uniform uint gridZ;
+
+float layerNoise(NoiseLayer layer, vec3 world) {
+	if (world.z < layer.heightOffset || world.z > layer.heightOffset + layer.height - 1.0) {
+		return -10000.0;
+	}
+	vec3 scale = max(vec3(layer.scaleX, layer.scaleY, layer.scaleZ), vec3(0.1));
+	vec3 scrolled = world + vec3(scroll.xy, 0.0);
+	float noise = cloudSimplex(scrolled/scale)*layer.valueScale + layer.valueOffset;
+	float heightDelta = world.z - layer.heightOffset;
+	noise -= 1.0 - clamp(heightDelta/max(layer.fadeDistance, 0.001), 0.0, 1.0);
+	noise -= 1.0 - clamp((layer.height - heightDelta)/max(layer.fadeDistance, 0.001), 0.0, 1.0);
+	return noise;
+}
+
+float groupNoise(LayerGroup group, vec3 world) {
+	int total = group.endIndex - group.startIndex;
+	if (total <= 0) return -10000.0;
+	float combined = 0.0;
+	bool anyValid = false;
+	for (int i = 0; i < total; i++) {
+		float val = layerNoise(layers.data[group.startIndex + i], world);
+		if (val > -10.0) {
+			combined += val;
+			anyValid = true;
+		}
+	}
+	return anyValid ? combined : -10000.0;
+}
+
+void sampleRegion(vec2 worldXy, out int typeIndex, out float inner, out vec2 origin, out int regionIndex) {
+	typeIndex = -1;
+	inner = 0.0;
+	origin = vec2(0.0);
+	regionIndex = -1;
+	for (int i = 0; i < regionCount; i++) {
+		GpuRegion region = regions.data[i];
+		vec2 delta = worldXy - vec2(region.posX, region.posY);
+		float c = cos(region.rotation);
+		float s = sin(region.rotation);
+		vec2 rotated = vec2(c*delta.x + s*delta.y, -s*delta.x + c*delta.y);
+		rotated.x /= max(region.stretch, 0.01);
+		float dist = length(rotated);
+		float radius = region.radius;
+		if (dist > radius + edgeFade) continue;
+		float thisInner = clamp((radius - dist)/max(edgeFade, 0.001), 0.0, 1.0);
+		if (thisInner > inner) {
+			typeIndex = int(region.typeIndex);
+			inner = thisInner;
+			origin = vec2(region.posX, region.posY);
+			regionIndex = i;
+		}
+	}
+}
+
+float innerOf(GpuRegion region, vec2 worldXy) {
+	vec2 delta = worldXy - vec2(region.posX, region.posY);
+	float c = cos(region.rotation);
+	float s = sin(region.rotation);
+	vec2 rotated = vec2(c*delta.x + s*delta.y, -s*delta.x + c*delta.y);
+	rotated.x /= max(region.stretch, 0.01);
+	float dist = length(rotated);
+	return clamp((region.radius - dist)/max(edgeFade, 0.001), 0.0, 1.0);
+}
+
+float densityForRegion(vec3 world, int typeIndex, GpuRegion region, float inner) {
+	if (typeIndex < 0 || inner <= 0.0) return -10000.0;
+	LayerGroup group = groups.data[typeIndex];
+	float fade = -5.0*pow(1.0 - inner, 10.0);
+	vec3 local = vec3(world.xy - vec2(region.posX, region.posY), world.z);
+	return groupNoise(group, local) + fade;
+}
+
+bool solidAt(vec3 world) {
+	int typeIndex;
+	float inner;
+	vec2 origin;
+	int regionIndex;
+	sampleRegion(world.xy, typeIndex, inner, origin, regionIndex);
+	if (regionIndex < 0) return false;
+	return densityForRegion(world, typeIndex, regions.data[regionIndex], inner) > 0.0;
+}
+
+bool solidNeighbor(vec3 world, int typeIndex, GpuRegion region) {
+	float inner = innerOf(region, world.xy);
+	if (inner > 0.0) {
+		return densityForRegion(world, typeIndex, region, inner) > 0.0;
+	}
+	return solidAt(world);
+}
+
+int imod(int a, int b) {
+	int m = a % b;
+	return m < 0 ? m + b : m;
+}
+
+uint voxelKey(ivec3 voxelId) {
+	return uint(voxelId.x)*73856093u ^ uint(voxelId.y)*19349663u ^ uint(voxelId.z)*83492791u;
+}
+
+bool inGrid(vec3 world) {
+	vec3 local = (world - gridOrigin)/voxelSize;
+	return local.x >= 0.0 && local.x < float(gridX)
+		&& local.y >= 0.0 && local.y < float(gridY)
+		&& local.z >= 0.0 && local.z < float(gridZ);
+}
+
+bool lodRangeWanted(vec3 world, bool keepAlive) {
+	vec2 delta = abs(world.xy - playerPos.xy);
+	float dist = max(delta.x, delta.y);
+	float inR = innerRadius;
+	float outR = outerRadius;
+	if (keepAlive) {
+		float h = max(voxelSize*2.0, 48.0);
+		inR = max(innerRadius - h, 0.0);
+		outR = outerRadius + h;
+	}
+	return dist >= inR && dist < outR;
+}
+
+uint occupancyIndex(vec3 world) {
+	ivec3 voxelId = ivec3(floor(world/voxelSize));
+	int gx = int(gridX);
+	int gy = int(gridY);
+	int gz = int(gridZ);
+	int sx = imod(voxelId.x, gx);
+	int sy = imod(voxelId.y, gy);
+	int sz = imod(voxelId.z, gz);
+	return occupancyOffset + uint(sx + sy*gx + sz*gx*gy);
+}
+
+float neighborFade(vec3 world, int typeIndex, GpuRegion region, bool hasRegion) {
+	if (inGrid(world)) {
+		uint idx = occupancyIndex(world);
+		ivec3 voxelId = ivec3(floor(world/voxelSize));
+		Occupancy occ = occupancy.data[idx];
+		if (occ.key == voxelKey(voxelId)) {
+			return occ.fade;
+		}
+	}
+	if (hasRegion) {
+		return solidNeighbor(world, typeIndex, region) ? 1.0 : 0.0;
+	}
+	return solidAt(world) ? 1.0 : 0.0;
+}
+
+void emitFace(vec3 center, float radius, int side, float brightness, float opacity) {
+	uint index = atomicAdd(cmd.instanceCount, 1u);
+	if (index >= maxSides) {
+		atomicMin(cmd.instanceCount, maxSides);
+		return;
+	}
+	SideInfo info;
+	info.side = side;
+	info.x = center.x;
+	info.y = center.y;
+	info.z = center.z;
+	info.brightness = brightness;
+	info.radius = radius;
+	info.opacity = opacity;
+	sides.data[index] = info;
+}
+
+void tryEmitFace(vec3 center, float radius, int side, float brightness, float ownFade, float nFade, float regionOpacity, float lodFade) {
+	if (nFade >= 0.997) return;
+	if (ownFade + 0.001 < nFade) return;
+	if (abs(ownFade - nFade) < 0.001 && (side & 1) == 1) return;
+	float faceOp = clamp(ownFade, 0.0, 1.0)*regionOpacity*clamp(lodFade, 0.0, 1.0);
+	if (faceOp <= 0.004) return;
+	emitFace(center, radius, side, brightness, faceOp);
+}
+
+void main() {
+	vec3 world = gridOrigin + vec3(float(gl_GlobalInvocationID.x), float(gl_GlobalInvocationID.z), float(gl_GlobalInvocationID.y))*voxelSize;
+
+	ivec3 voxelId = ivec3(floor(world/voxelSize));
+	uint index = occupancyIndex(world);
+	uint key = voxelKey(voxelId);
+	Occupancy occ = occupancy.data[index];
+	bool keepAlive = occ.key == key && (occ.lodFade > 0.004 || occ.lodHold > 0.001);
+	bool lodWanted = lodRangeWanted(world, keepAlive);
+
+	if (occ.key == key && !lodWanted && occ.lodFade <= 0.004 && occ.lodHold <= 0.0) {
+		return;
+	}
+	if (occ.key != key && !lodWanted) {
+		occupancy.data[index].key = key;
+		occupancy.data[index].fade = 0.0;
+		occupancy.data[index].lodFade = 0.0;
+		occupancy.data[index].lodHold = 0.0;
+		return;
+	}
+
+	int typeIndex;
+	float inner;
+	vec2 origin;
+	int regionIndex;
+	sampleRegion(world.xy, typeIndex, inner, origin, regionIndex);
+
+	bool hasRegion = typeIndex >= 0 && inner > 0.0 && regionIndex >= 0;
+	GpuRegion region;
+	float noise = -10000.0;
+	if (hasRegion) {
+		region = regions.data[regionIndex];
+		noise = densityForRegion(world, typeIndex, region, inner);
+	}
+	bool solid = hasRegion && noise > 0.0;
+
+	float fade;
+	float lodFade;
+	float lodHold;
+	bool lodWasActive = occ.key == key && occ.lodFade > 0.004;
+	if (occ.key != key) {
+		fade = solid ? 1.0 : 0.0;
+		lodFade = lodWanted ? lodFadeDt : 0.0;
+		lodHold = lodWanted ? lodHoldTime : 0.0;
+	} else if (lodWanted && !lodWasActive) {
+		fade = solid ? 1.0 : 0.0;
+		lodFade = min(1.0, occ.lodFade + lodFadeDt);
+		lodHold = lodHoldTime;
+	} else {
+		fade = solid ? min(1.0, occ.fade + fadeDt) : max(0.0, occ.fade - fadeDt);
+		if (lodWanted) {
+			lodFade = min(1.0, occ.lodFade + lodFadeDt);
+			lodHold = lodHoldTime;
+		} else {
+			lodHold = max(0.0, occ.lodHold - frameDt);
+			lodFade = lodHold > 0.0 ? occ.lodFade : max(0.0, occ.lodFade - lodFadeDt);
+		}
+	}
+	occupancy.data[index].key = key;
+	occupancy.data[index].fade = fade;
+	occupancy.data[index].lodFade = lodFade;
+	occupancy.data[index].lodHold = lodHold;
+	if (fade <= 0.004 || lodFade <= 0.004) return;
+
+	float brightness = 1.0;
+	float regionOpacity = 1.0;
+	if (hasRegion) {
+		LayerGroup group = groups.data[typeIndex];
+		float stormFactor = 1.0 - clamp((world.z - group.stormStart)/max(group.stormFadeDistance, 0.001), 0.0, 1.0);
+		brightness = clamp(1.0 - group.storminess*stormFactor, 0.15, 1.0);
+		regionOpacity = clamp(region.opacity, 0.0, 1.0);
+	}
+	if (regionOpacity <= 0.004) return;
+
+	vec3 relative = world - playerPos;
+	vec3 center = relative + vec3(voxelSize*0.5);
+	float radius = voxelSize*0.5;
+	const vec3 offsets[6] = vec3[6](
+		vec3(-voxelSize, 0, 0),
+		vec3(voxelSize, 0, 0),
+		vec3(0, -voxelSize, 0),
+		vec3(0, voxelSize, 0),
+		vec3(0, 0, -voxelSize),
+		vec3(0, 0, voxelSize)
+	);
+	for (int side = 0; side < 6; side++) {
+		float nFade = neighborFade(world + offsets[side], typeIndex, region, hasRegion);
+		tryEmitFace(center, radius, side, brightness, fade, nFade, regionOpacity, lodFade);
+	}
+}

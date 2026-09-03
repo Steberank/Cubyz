@@ -421,10 +421,12 @@ pub const World = struct { // MARK: World
 		pub const nightStart = dayCycleLength/4 + dayCycleLength/16;
 		pub const dayStart = dayCycleLength/2 + dayCycleLength/4 + dayCycleLength/16;
 
-		biomeFog: Fog = Fog{.skyColor = .{0.8, 0.8, 1}, .fogColor = .{0.8, 0.8, 1}, .density = 1.0/15.0/128.0, .fogLower = 100, .fogHigher = 1000},
-		fog: Fog = Fog{.skyColor = .{0.8, 0.8, 1}, .fogColor = .{0.8, 0.8, 1}, .density = 1.0/15.0/128.0, .fogLower = 100, .fogHigher = 1000},
+		biomeFog: Fog = Fog{.skyColor = .{0.8, 0.8, 1}, .fogColor = .{0.8, 0.8, 1}, .density = 0.45/15.0/128.0, .fogLower = 80, .fogHigher = 420},
+		fog: Fog = Fog{.skyColor = .{0.8, 0.8, 1}, .fogColor = .{0.8, 0.8, 1}, .density = 0.45/15.0/128.0, .fogLower = 80, .fogHigher = 420},
 		ambientLight: f32 = 0,
 		dayTime: i64 = 0,
+		rainFog: f32 = 0,
+		stormFog: f32 = 0,
 
 		pub fn getDayProgress(self: *DayTime) f32 {
 			return @as(f32, @floatFromInt(self.dayTime))/@as(f32, @floatFromInt(dayCycleLength));
@@ -508,11 +510,27 @@ pub const World = struct { // MARK: World
 			const skyColorFactor = self.getSkyColorFactor();
 			self.updateAmbientLight();
 
-			self.fog.fogColor = self.biomeFog.fogColor*skyColorFactor;
-			self.fog.skyColor = self.biomeFog.skyColor*skyColorFactor;
-			self.fog.density = self.biomeFog.density;
-			self.fog.fogLower = self.biomeFog.fogLower;
-			self.fog.fogHigher = self.biomeFog.fogHigher;
+			const pos = Player.super.pos;
+			const rainDay = renderer.clouds.rainDayFactor();
+			const stormDay = renderer.clouds.stormWeatherFactor();
+			const rainTarget = renderer.clouds.stratoCoverAt(pos[0], pos[1], pos[2])*rainDay;
+			const stormTarget = renderer.clouds.stormDarknessAt(pos[0], pos[1], pos[2])*stormDay;
+			const rainT = 1 - @as(f32, @floatCast(@exp(-0.32*deltaTime)));
+			self.rainFog += (rainTarget - self.rainFog)*rainT;
+			self.stormFog += (stormTarget - self.stormFog)*rainT;
+			const rain = self.rainFog;
+			const storm = self.stormFog;
+			const rainColor: Vec3f = .{0.58, 0.61, 0.66};
+			const stormColor: Vec3f = .{0.12, 0.13, 0.16};
+
+			self.fog.fogColor = self.biomeFog.fogColor*skyColorFactor*(@as(Vec3f, @splat(1 - rain*0.7))) + rainColor*skyColorFactor*@as(Vec3f, @splat(rain*0.7));
+			self.fog.fogColor = self.fog.fogColor*(@as(Vec3f, @splat(1 - storm))) + stormColor*@as(Vec3f, @splat(storm));
+			self.fog.skyColor = self.biomeFog.skyColor*skyColorFactor*(@as(Vec3f, @splat(1 - rain*0.25 - storm*0.55)));
+			const weatherFog = @max(rain, storm);
+			self.fog.fogLower = self.biomeFog.fogLower + (16 - self.biomeFog.fogLower)*weatherFog;
+			self.fog.fogHigher = self.biomeFog.fogHigher + (512 - self.biomeFog.fogHigher)*weatherFog;
+			self.fog.density = self.biomeFog.density*(1 + rain*8.0 + storm*10.0);
+			self.ambientLight *= 1 - rain*0.24 - storm*0.42;
 		}
 	};
 };

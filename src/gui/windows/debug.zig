@@ -118,5 +118,9 @@ pub fn render() void {
 		y += 8;
 		draw.print("items: {} entities: {}", .{main.game.world.?.itemDrops.super.size, main.client.entity_manager.entities.len}, 0, y, 8);
 		y += 8;
+		draw.print("cloud_looking_at: {s}", .{main.renderer.clouds.lookingAtType}, 0, y, 8);
+		y += 8;
+		draw.print("cloud_day: {s}", .{main.renderer.clouds.climateLabel()}, 0, y, 8);
+		y += 8;
 	}
 }
