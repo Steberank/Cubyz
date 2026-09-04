@@ -1,0 +1,283 @@
+#version 460
+
+// GPU cloud meshing.
+//
+// Every invocation evaluates the cloud density field at one voxel of one cloud
+// chunk and emits the cube faces that are exposed, i.e. whose neighbour along
+// that axis is empty. Each chunk owns a fixed slice of one shared buffer and
+// appends into it through an atomic counter, so chunks can be dispatched
+// without ordering constraints between them and rendering can read the buffer
+// in place. The host only has to read back the counters.
+//
+// Coordinates are in *cloud space*: one unit equals `cloudScale` blocks, and Z
+// points up. Positions are relative to the mesh generation grid origin so they
+// stay small regardless of how far the player is from the world origin, while
+// `noiseOrigin` carries the (wrapped) absolute offset used for sampling noise.
+//
+// Compile-time flags:
+//   SINGLE_REGION     one cloud type everywhere instead of a region texture
+//   FADE_NEAR_ORIGIN  carve clouds away around the player
+//   SHADED            shade faces using the analytic noise gradient
+//   TRANSPARENCY      also emit the soft transparent shell around the surface
+
+#include "../include/psrdnoise.glsl"
+#include "include/cloud_face.glsl"
+
+#define SHADE_DIRECTION normalize(vec3(0.5, 0.5, 0.5))
+#define TILE_PERIOD vec3(32.0, 32.0, 64.0)
+#define LOCAL_SIZE vec3(8.0, 8.0, 8.0)
+#define EMPTY_NOISE -10000.0
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+struct LayerGroup {
+	int startIndex;
+	int endIndex;
+	float storminess;
+	float stormStart;
+	float stormFadeDistance;
+	float transparencyFade;
+};
+
+struct NoiseLayer {
+	float height;
+	float valueOffset;
+	float scaleX;
+	float scaleY;
+	float scaleZ;
+	float fadeDistance;
+	float heightOffset;
+	float valueScale;
+};
+
+struct TransparentCubeInfo {
+	float x;
+	float y;
+	float z;
+	float brightness;
+	float alpha;
+	float radius;
+};
+
+layout(std430, binding = 20) readonly buffer _noiseLayers {
+	NoiseLayer layers[];
+};
+
+layout(std430, binding = 21) readonly buffer _layerGroupings {
+	LayerGroup layerGroupings[];
+};
+
+layout(std430, binding = 22) writeonly restrict buffer _sideInfo {
+	SideInfo sides[];
+};
+
+layout(std430, binding = 23) restrict buffer _sidesPerChunk {
+	uint sidesPerChunk[];
+};
+
+#ifdef TRANSPARENCY
+layout(std430, binding = 25) writeonly restrict buffer _transparentCubeInfo {
+	TransparentCubeInfo transparentCubes[];
+};
+
+layout(std430, binding = 26) restrict buffer _transparentCubesPerChunk {
+	uint transparentCubesPerChunk[];
+};
+#endif
+
+#ifndef SINGLE_REGION
+layout(binding = 9) uniform sampler2DArray regionsSampler;
+layout(location = 0) uniform int regionsTexSize;
+layout(location = 1) uniform vec2 regionSampleOffset;
+#endif
+
+layout(location = 2) uniform int lodLevel;
+layout(location = 3) uniform vec3 renderOffset;
+layout(location = 4) uniform vec3 noiseOrigin;
+layout(location = 5) uniform float scale;
+layout(location = 6) uniform vec3 scroll;
+layout(location = 7) uniform float wiggle;
+layout(location = 8) uniform vec3 origin;
+/// When false, faces pointing away from the camera are skipped entirely. That is
+/// cheaper but leaves holes in the shadow map and in the storm fog.
+layout(location = 9) uniform bool generateHiddenFaces;
+layout(location = 10) uniform int doNotOccludeSide;
+layout(location = 11) uniform int chunkIndex;
+layout(location = 12) uniform float fadeStart;
+layout(location = 13) uniform float fadeEnd;
+layout(location = 14) uniform float transparencyDistance;
+
+/// Start of this chunk's slice of the shared mesh buffers, in elements.
+layout(location = 15) uniform int opaqueMeshOffset;
+layout(location = 16) uniform int maxOpaqueElements;
+#ifdef TRANSPARENCY
+layout(location = 17) uniform int transparentMeshOffset;
+layout(location = 18) uniform int maxTransparentElements;
+#endif
+
+float getNoiseForLayer(NoiseLayer layer, vec3 pos, out vec3 gradient) {
+	gradient = vec3(0.0);
+	if(pos.z < layer.heightOffset || pos.z > layer.heightOffset + layer.height - 1.0) return EMPTY_NOISE;
+	vec3 layerScale = vec3(layer.scaleX, layer.scaleY, layer.scaleZ);
+	vec3 samplePos = (pos + noiseOrigin)/layerScale + scroll/layerScale;
+	float noise = psrdnoise(samplePos, TILE_PERIOD, wiggle, gradient)*layer.valueScale + layer.valueOffset;
+	float heightDelta = pos.z - layer.heightOffset;
+	noise -= 1.0 - clamp(heightDelta/layer.fadeDistance, 0.0, 1.0);
+	noise -= 1.0 - clamp((layer.height - heightDelta)/layer.fadeDistance, 0.0, 1.0);
+	return noise;
+}
+
+float getNoiseForLayerGroup(LayerGroup group, vec3 pos, out vec3 gradient) {
+	gradient = vec3(0.0);
+	int totalLayers = group.endIndex - group.startIndex;
+	if(totalLayers == 0) return EMPTY_NOISE;
+	if(totalLayers == 1) return getNoiseForLayer(layers[group.startIndex], pos, gradient);
+
+	vec3 combinedGradient = vec3(0.0);
+	float combinedNoise = 0.0;
+	bool anyValid = false;
+	for(int i = 0; i < totalLayers; i++) {
+		vec3 layerGradient;
+		float layerValue = getNoiseForLayer(layers[i + group.startIndex], pos, layerGradient);
+		if(layerValue > -10.0) {
+			combinedNoise += layerValue;
+			combinedGradient += layerGradient;
+			anyValid = true;
+		}
+	}
+	gradient = combinedGradient;
+	return anyValid ? combinedNoise : EMPTY_NOISE;
+}
+
+bool isSolid(vec3 pos, LayerGroup group, float fade) {
+	vec3 gradient;
+	return getNoiseForLayerGroup(group, pos, gradient) + fade > 0.0;
+}
+
+float radialFade(vec2 horizontal) {
+	float len = distance(horizontal, origin.xy);
+	return -5.0*min(max(len - fadeStart, 0.0)/(fadeEnd - fadeStart), 1.0);
+}
+
+/// Looks up the cloud type and edge fade for a neighbouring voxel. The offset is
+/// given in voxels so that neighbours across a region boundary use that region's
+/// own layer group rather than the current one.
+bool isSolidAtNeighbour(vec3 pos, ivec2 neighbourOffset) {
+#ifdef SINGLE_REGION
+	LayerGroup group = layerGroupings[0];
+	float fade = radialFade(pos.xy);
+#else
+	vec2 texelCoord = vec2(gl_GlobalInvocationID.xy) + regionSampleOffset + vec2(neighbourOffset);
+	vec4 info = texture(regionsSampler, vec3(texelCoord/regionsTexSize, float(lodLevel)));
+	LayerGroup group = layerGroupings[uint(info.r)];
+	float fade = -5.0*pow(1.0 - info.g, 10.0);
+#ifdef FADE_NEAR_ORIGIN
+	fade = min(fade, radialFade(pos.xy));
+#endif
+#endif
+	return isSolid(pos, group, fade);
+}
+
+/// The innermost ring of each LOD level borders a higher detail ring. Faces on
+/// that border would be hidden by the neighbouring ring, so they are kept even
+/// though the coarse density field says they are occluded.
+bool shouldNotOcclude(int index) {
+	if(doNotOccludeSide == -1 || index != doNotOccludeSide) return false;
+	vec3 id = vec3(gl_GlobalInvocationID);
+	vec3 size = vec3(gl_NumWorkGroups)*LOCAL_SIZE;
+	switch(doNotOccludeSide) {
+		case 0: return id.x == 0.0;
+		case 1: return id.x == size.x - 1.0;
+		case 2: return id.y == 0.0;
+		case 3: return id.y == size.y - 1.0;
+		case 4: return id.z == 0.0;
+		case 5: return id.z == size.z - 1.0;
+	}
+	return false;
+}
+
+void createFace(vec3 center, float cubeRadius, int index, float brightness) {
+	// The counter keeps climbing past the slice so the host can report overflow.
+	uint currentFace = atomicAdd(sidesPerChunk[chunkIndex], 1u);
+	if(currentFace >= uint(maxOpaqueElements)) return;
+	SideInfo side;
+	side.side = index;
+	side.x = center.x;
+	side.y = center.y;
+	side.z = center.z;
+	side.brightness = brightness;
+	side.radius = cubeRadius;
+	sides[uint(opaqueMeshOffset) + currentFace] = side;
+}
+
+void createCube(vec3 pos, float cubeRadius, float brightness, float fade, LayerGroup group) {
+	vec3 norm = normalize(pos - origin);
+	vec3 center = pos + cubeRadius;
+	for(int face = 0; face < 6; face++) {
+		vec3 dir = cloudFaceNormals[face];
+		if(!generateHiddenFaces && dot(norm, dir) > 0.0) continue;
+		bool occluded;
+		if(face < 4) {
+			// Horizontal neighbours may belong to a different cloud region.
+			ivec2 neighbourOffset = ivec2(dir.xy);
+			occluded = isSolidAtNeighbour(pos + dir*scale, neighbourOffset);
+		} else {
+			occluded = isSolid(pos + dir*scale, group, fade);
+		}
+		if(!occluded || shouldNotOcclude(face)) createFace(center, cubeRadius, face, brightness);
+	}
+}
+
+#ifdef TRANSPARENCY
+void createTransparentCube(vec3 pos, float cubeRadius, float brightness, float alpha) {
+	uint currentCube = atomicAdd(transparentCubesPerChunk[chunkIndex], 1u);
+	if(currentCube >= uint(maxTransparentElements)) return;
+	TransparentCubeInfo cube;
+	cube.x = pos.x + cubeRadius;
+	cube.y = pos.y + cubeRadius;
+	cube.z = pos.z + cubeRadius;
+	cube.brightness = brightness;
+	cube.alpha = alpha;
+	cube.radius = cubeRadius;
+	transparentCubes[uint(transparentMeshOffset) + currentCube] = cube;
+}
+#endif
+
+void main() {
+	vec3 pos = vec3(gl_GlobalInvocationID)*scale + renderOffset;
+
+#ifdef SINGLE_REGION
+	LayerGroup group = layerGroupings[0];
+	float fade = radialFade(pos.xy);
+#else
+	vec2 texelCoord = vec2(gl_GlobalInvocationID.xy) + regionSampleOffset;
+	vec4 info = texture(regionsSampler, vec3(texelCoord/regionsTexSize, float(lodLevel)));
+	LayerGroup group = layerGroupings[uint(info.r)];
+	float fade = -5.0*pow(1.0 - info.g, 10.0);
+#ifdef FADE_NEAR_ORIGIN
+	fade = min(fade, radialFade(pos.xy));
+#endif
+#endif
+
+	vec3 gradient;
+	float noise = getNoiseForLayerGroup(group, pos, gradient) + fade;
+
+	float storminess = clamp(group.storminess + fade*0.1, 0.0, 1.0);
+	float brightness = clamp(1.0 - storminess*(1.0 - clamp((pos.z - group.stormStart)/group.stormFadeDistance, 0.0, 1.0)), 0.0, 1.0);
+#ifdef SHADED
+	float strength = dot(normalize(gradient), SHADE_DIRECTION)*0.5 + 0.5;
+	brightness = clamp(brightness - strength*0.1, 0.0, 1.0);
+#endif
+
+	if(noise > 0.0) {
+		createCube(pos, scale/2.0, brightness, fade, group);
+	}
+#ifdef TRANSPARENCY
+	else if(group.transparencyFade > 0.01 && noise > -group.transparencyFade && noise < 0.0) {
+		if(distance(pos.xy, origin.xy) < transparencyDistance) {
+			float alpha = (noise + group.transparencyFade)/group.transparencyFade;
+			createTransparentCube(pos, scale/2.0, brightness, alpha);
+		}
+	}
+#endif
+}

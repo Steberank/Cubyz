@@ -1,0 +1,31 @@
+.{
+	.tags = .{.choppable, .wood, .branch},
+	.onUpdate = .{
+		.type = .decay,
+	},
+	.blockHealth = 4,
+	.texture0 = "cubyz:branch/palm/dot",
+	.texture1 = "cubyz:branch/palm/half_line",
+	.texture2 = "cubyz:branch/palm/line",
+	.texture3 = "cubyz:branch/palm/bend",
+	.texture4 = "cubyz:branch/palm/intersection",
+	.texture5 = "cubyz:branch/palm/cross",
+	.item = .{
+		.colorTexture = "palm_branch_palette.png",
+		.material = .{
+			.durability = 31,
+			.massDamage = 1.15,
+			.hardnessDamage = 0.51,
+			.swingSpeed = 4.7,
+			.textureRoughness = 0.7,
+			.modifiers = .{
+				.{
+					.id = "durable",
+					.strength = 0.45,
+				},
+			},
+		},
+		.texture = "branch/palm.png",
+	},
+	.decayProhibitor = true,
+}

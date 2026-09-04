@@ -1,0 +1,46 @@
+.{
+	.{
+		.inputs = .{"4 {mod}:planks/{type}"},
+		.output = "cubyz:workbench",
+	},
+	.{
+		.inputs = .{"cubyz:log/{type}"},
+		.output = "4 cubyz:planks/{type}",
+	},
+	.{
+		.inputs = .{"cubyz:log/{type}"},
+		.output = "2 cubyz:branch/{type}",
+	},
+	.{
+		.inputs = .{"cubyz:branch/{type}"},
+		.output = "2 cubyz:planks/{type}",
+	},
+	.{
+		.inputs = .{"cubyz:planks/{type}"},
+		.output = "2 cubyz:fence/{type}",
+	},
+	.{
+		.inputs = .{"cubyz:planks/{type}"},
+		.output = "cubyz:sign/{type}",
+	},
+	.{
+		.inputs = .{"4 cubyz:planks/{type}"},
+		.output = "cubyz:chest/{type}",
+	},
+	.{
+		.inputs = .{"cubyz:candy_cane_block"},
+		.output = "2 cubyz:branch/candy_cane",
+	},
+	.{
+		.inputs = .{"{mod}:planks/{type}", "cubyz:coal_ore"},
+		.output = "8 cubyz:torch",
+	},
+	.{
+		.inputs = .{"{mod}:planks/{type}", "cubyz:sulfur_ore"},
+		.output = "8 cubyz:sulfur_torch",
+	},
+	.{
+		.inputs = .{"{mod}:planks/{type}", "cubyz:lumiflora"},
+		.output = "8 cubyz:torch/lumi",
+	},
+}

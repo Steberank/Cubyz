@@ -1,0 +1,20 @@
+.{
+	.item = .{
+		.colorTexture = "willow_planks_palette.png",
+		.material = .{
+			.durability = 20,
+			.massDamage = 1.0,
+			.hardnessDamage = 0.95,
+			.swingSpeed = 4.8,
+			.textureRoughness = 0.7,
+			.modifiers = .{
+				.{
+					.id = "durable",
+					.strength = 0.4,
+				},
+			},
+		},
+	},
+
+	.texture = "cubyz:planks/willow",
+}

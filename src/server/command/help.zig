@@ -1,0 +1,71 @@
+const std = @import("std");
+
+const main = @import("main");
+const NeverFailingAllocator = main.heap.NeverFailingAllocator;
+const ListManaged = main.ListManaged;
+const command = main.server.command;
+const Source = command.Source;
+
+pub const description = "Shows info about all the commands.";
+pub const usage = "/help\n/help <command>";
+
+pub const Args = union(enum) {
+	@"/help <bobik>": struct { bobik: enum { Bobik, bobik } },
+	@"/help <command>": struct { command: Cmd },
+	@"/help": struct {},
+};
+
+pub fn execute(args: Args, source: Source) void {
+	var msg: main.ListManaged(u8) = .init(main.stackAllocator);
+	defer msg.deinit();
+	msg.appendSlice("#ffff00");
+	switch (args) {
+		.@"/help" => {
+			var iterator = command.commands.valueIterator();
+			while (iterator.next()) |cmd| {
+				if (!source.hasPermission(cmd.permissionPath)) continue;
+
+				msg.append('/');
+				msg.appendSlice(cmd.name);
+				msg.appendSlice(": ");
+				msg.appendSlice(cmd.description);
+				msg.append('\n');
+			}
+			msg.appendSlice("\nUse /help <command> for usage of a specific command.\n");
+		},
+		.@"/help <command>" => |params| {
+			const cmd = params.command.cmd;
+
+			if (!source.hasPermission(cmd.permissionPath)) {
+				source.sendMessage("#ff0000Unrecognized command name.", .{});
+				return;
+			}
+
+			msg.append('/');
+			msg.appendSlice(cmd.name);
+			msg.appendSlice(": ");
+			msg.appendSlice(cmd.description);
+			msg.append('\n');
+			msg.appendSlice(cmd.usage);
+			msg.append('\n');
+		},
+		.@"/help <bobik>" => {
+			msg.appendSlice("Even Bobik can't help you anymore ");
+		},
+	}
+	if (msg.items[msg.items.len - 1] == '\n') _ = msg.pop();
+	source.sendMessage("{s}", .{msg.items});
+}
+
+const Cmd = struct {
+	cmd: command.Command,
+
+	pub fn parse(_: NeverFailingAllocator, name: []const u8, arg: []const u8, errorList: *ListManaged(u8)) error{ParseError}!Cmd {
+		return .{
+			.cmd = command.commands.get(arg) orelse {
+				errorList.print("Unrecognized command name for <{s}>, got {s}", .{name, arg});
+				return error.ParseError;
+			},
+		};
+	}
+};

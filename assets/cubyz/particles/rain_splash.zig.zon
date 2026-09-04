@@ -1,0 +1,9 @@
+.{
+	// Droplets thrown up where rain hits a solid block. Denser than air so they
+	// arc back down, and draggy so they lose their speed almost immediately.
+	.texture = "cubyz:rain_splash",
+	.size = 0.07,
+	.density = .{4, 6},
+	.rotationVelocity = .{0, 0},
+	.dragCoefficient = .{1.2, 1.8},
+}

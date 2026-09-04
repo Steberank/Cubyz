@@ -1,0 +1,28 @@
+.{
+	.tags = .{.mineable},
+	.blockHealth = 16,
+	.blockResistance = 2,
+	.drops = .{
+		.{.items = .{.auto}},
+	},
+	.item = .{
+		.colorTexture = "obsidian_palette.png",
+		.material = .{
+			.durability = 55,
+			.massDamage = 1.7,
+			.hardnessDamage = 5.7,
+			.swingSpeed = 2.5,
+			.textureRoughness = 0.1,
+			.modifiers = .{
+				.{
+					.id = "fragile",
+					.strength = 0.33,
+				},
+			},
+		},
+	},
+	.allowOres = true,
+	.rotation = "cubyz:stairs",
+	.model = "cubyz:cube",
+	.texture = "cubyz:obsidian",
+}

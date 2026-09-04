@@ -1,0 +1,28 @@
+.{
+	.tags = .{.mineable},
+	.blockHealth = 40,
+	.blockResistance = 1,
+	.item = .{
+		.texture = "sulfur.png",
+		.colorTexture = "sulfur_ore_palette.png",
+		.material = .{
+			.durability = 20,
+			.massDamage = 3.5,
+			.hardnessDamage = 1.0,
+			.swingSpeed = 3.7,
+			.textureRoughness = 0.1,
+		},
+	},
+	.ore = .{
+		.veins = 3,
+		.size = 50,
+		.maxHeight = -800,
+		.density = 0.8,
+	},
+	.drops = .{
+		.{.items = .{.auto}},
+	},
+	.rotation = "cubyz:ore",
+	.model = "cubyz:cube",
+	.texture = "cubyz:sulfur_ore",
+}

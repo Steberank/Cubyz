@@ -1,0 +1,50 @@
+.{
+	.properties = .{
+		.mountain,
+	},
+	.tags = .{
+		.snowy,
+		.oak,
+	},
+	.minHeightLimit = 7,
+	.minHeight = 80,
+	.maxHeight = 256,
+	.smoothBeaches = true,
+
+	.roughness = 10,
+	.mountains = 100,
+
+	.rivers = true,
+	.music = "cubyz:totaldemented/adventurous",
+	.ground_structure = .{
+		"0 to 1 cubyz:grass/temperate",
+		"0 to 1 cubyz:gravel",
+		"0 to 1 cubyz:slate/rough",
+	},
+	.structures = .{
+		.{
+			.id = "cubyz:sbb",
+			.structure = "cubyz:tree/oak/young",
+			.placeMode = .degradable,
+			.chance = 0.16,
+		},
+		.{
+			.id = "cubyz:ground_patch",
+			.block = "cubyz:gravel",
+			.chance = 0.048,
+			.width = 6,
+			.variation = 2,
+			.depth = 3,
+			.smoothness = 0.8,
+		},
+		.{
+			.id = "cubyz:ground_patch",
+			.block = "cubyz:snow",
+			.chance = 0.032,
+			.width = 6,
+			.variation = 2,
+			.depth = 3,
+			.smoothness = 0.8,
+		},
+	},
+}

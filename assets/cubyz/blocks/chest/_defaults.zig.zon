@@ -1,0 +1,13 @@
+.{
+	.tags = .{.choppable, .wood},
+	.blockHealth = 10,
+	.drops = .{
+		.{.items = .{.auto}},
+	},
+	.model = "cubyz:cube",
+	.rotation = "cubyz:planar",
+	.blockEntity = "cubyz:chest",
+	.onInteract = .{
+		.type = .open_chest,
+	},
+}

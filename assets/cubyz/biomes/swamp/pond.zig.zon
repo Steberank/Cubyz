@@ -1,0 +1,40 @@
+.{
+	.properties = .{
+		.hot,
+		.wet,
+	},
+	.minHeight = -4,
+	.maxHeight = -4,
+	.minRadius = 32,
+	.maxRadius = 48,
+	.chance = 0,
+	.roughness = 3,
+	.hills = 2,
+	.music = "cubyz:totaldemented/leaves",
+	.ground_structure = .{
+		"4 to 5 cubyz:mud",
+	},
+	.structures = .{
+		.{
+			.id = "cubyz:flower_patch",
+			.blocks = .{
+				"cubyz:lily_pad:0",
+				"cubyz:lily_pad:1",
+				"cubyz:lily_pad:2",
+				"cubyz:lily_pad:3",
+			},
+			.generationMode = .water_surface,
+			.chance = 0.1,
+			.width = 6,
+			.variation = 6,
+			.density = 0.1,
+			.priority = 0.1,
+		},
+	},
+	.parentBiomes = .{
+		.{
+			.id = "cubyz:swamp/base",
+			.chance = 6,
+		},
+	},
+}

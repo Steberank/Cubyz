@@ -1,0 +1,28 @@
+.{
+	.properties = .{
+		.cold,
+		.wet,
+		.barren,
+	},
+	.tags = .{.snowy},
+
+	.music = "cubyz:totaldemented/frigid_feeling",
+
+	.minHeightLimit = 7,
+	.minHeight = 80,
+	.maxHeight = 256,
+	.smoothBeaches = true,
+	.fogDensity = 1.5,
+	.fogColor = 0xe2f2ff,
+	.minRadius = 150,
+	.maxRadius = 300,
+	.roughness = 37.5,
+	.mountains = 37.5,
+	.hills = 37.5,
+
+	.ground_structure = .{
+		"3 to 5 cubyz:snow",
+		"4 cubyz:frost",
+	},
+	.stoneBlock = "cubyz:frost",
+}

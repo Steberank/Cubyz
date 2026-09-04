@@ -1,0 +1,12 @@
+.{
+	.tags = .{.metal},
+	.texture = "iron_ingot.png",
+	.colorTexture = "iron_ingot_palette.png",
+	.material = .{
+		.durability = 1000,
+		.massDamage = 3.0,
+		.hardnessDamage = 6.0,
+		.swingSpeed = 8.3,
+		.textureRoughness = 0.1,
+	},
+}

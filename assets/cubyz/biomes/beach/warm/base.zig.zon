@@ -1,0 +1,40 @@
+.{
+	.properties = .{
+		.ocean,
+	},
+	.tags = .{
+		.palm,
+	},
+	.radius = 500,
+	.minHeight = 5,
+	.maxHeight = 7,
+	.chance = 0,
+
+	.interpolation = .linear,
+
+	.hills = 4,
+
+	.music = "cubyz:totaldemented/tides",
+
+	.stoneBlock = "cubyz:sandstone/rough",
+	.ground_structure = .{
+		"2 to 4 cubyz:sand",
+	},
+	.structures = .{
+		.{
+			.id = "cubyz:ground_patch",
+			.block = "cubyz:amber_ore:cubyz:sand",
+			.chance = 0.002,
+			.width = 1,
+			.variation = 2,
+			.depth = 1,
+			.smoothness = 0.1,
+		},
+		.{
+			.id = "cubyz:sbb",
+			.structure = "cubyz:tree/palm/coconut",
+			.placeMode = .degradable,
+			.chance = 0.0015,
+		},
+	},
+}

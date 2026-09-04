@@ -1,0 +1,154 @@
+const std = @import("std");
+
+const main = @import("main");
+const ClientInventory = main.items.Inventory.ClientInventory;
+const graphics = main.graphics;
+const draw = graphics.draw;
+const Texture = graphics.Texture;
+const TextBuffer = graphics.TextBuffer;
+const vec = main.vec;
+const Vec2f = vec.Vec2f;
+
+const gui = @import("../gui.zig");
+const GuiComponent = gui.GuiComponent;
+
+const ItemSlot = @This();
+
+const border: f32 = 2;
+
+pub const sizeWithBorder = 32 + 2*border;
+
+const Mode = enum {
+	normal,
+	takeOnly,
+	immutable,
+};
+
+pos: Vec2f,
+size: Vec2f = @splat(sizeWithBorder),
+inventory: ClientInventory,
+itemSlot: u32,
+lastItemAmount: u16 = 0,
+text: TextBuffer,
+textSize: Vec2f = .{0, 0},
+hovered: bool = false,
+pressed: bool = false,
+renderFrame: bool = true,
+texture: ?Texture,
+mode: Mode,
+
+var defaultTexture: Texture = undefined;
+var immutableTexture: Texture = undefined;
+var craftingResultTexture: Texture = undefined;
+const TextureParamType = union(enum) {
+	default: void,
+	immutable: void,
+	craftingResult: void,
+	invisible: void,
+	custom: Texture,
+	fn value(self: TextureParamType) ?Texture {
+		return switch (self) {
+			.default => defaultTexture,
+			.immutable => immutableTexture,
+			.craftingResult => craftingResultTexture,
+			.invisible => null,
+			.custom => |t| t,
+		};
+	}
+};
+
+pub fn globalInit() void {
+	defaultTexture = Texture.initFromFile("assets/cubyz/ui/inventory/slot.png");
+	immutableTexture = Texture.initFromFile("assets/cubyz/ui/inventory/immutable_slot.png");
+	craftingResultTexture = Texture.initFromFile("assets/cubyz/ui/inventory/crafting_result_slot.png");
+}
+
+pub fn globalDeinit() void {
+	defaultTexture.deinit();
+	immutableTexture.deinit();
+	craftingResultTexture.deinit();
+}
+
+pub fn init(pos: Vec2f, inventory: ClientInventory, itemSlot: u32, texture: TextureParamType, mode: Mode) *ItemSlot {
+	const self = main.globalAllocator.create(ItemSlot);
+	const amount = inventory.getAmount(itemSlot);
+	var buf: [16]u8 = undefined;
+	self.* = ItemSlot{
+		.inventory = inventory,
+		.itemSlot = itemSlot,
+		.pos = pos,
+		.text = TextBuffer.init(main.globalAllocator, std.fmt.bufPrint(&buf, "{}", .{amount}) catch "∞", .{}, false, .right),
+		.lastItemAmount = amount,
+		.texture = texture.value(),
+		.mode = mode,
+	};
+	self.textSize = self.text.calculateLineBreaks(8, self.size[0] - 2*border);
+	return self;
+}
+
+pub fn deinit(self: *const ItemSlot) void {
+	main.gui.inventory.deleteItemSlotReferences(self);
+	self.text.deinit();
+	main.globalAllocator.destroy(self);
+}
+
+fn refreshText(self: *ItemSlot) void {
+	const amount = self.inventory.getAmount(self.itemSlot);
+	if (self.lastItemAmount == amount) return;
+	self.lastItemAmount = amount;
+	self.text.deinit();
+	var buf: [16]u8 = undefined;
+	self.text = TextBuffer.init(
+		main.globalAllocator,
+		std.fmt.bufPrint(&buf, "{}", .{amount}) catch "∞",
+		.{.color = if (amount == 0) 0xff0000 else 0xffffff},
+		false,
+		.right,
+	);
+	self.textSize = self.text.calculateLineBreaks(8, self.size[0] - 2*border);
+}
+
+pub fn toComponent(self: *ItemSlot) GuiComponent {
+	return .{.itemSlot = self};
+}
+
+pub fn updateHovered(self: *ItemSlot, _: Vec2f) main.callbacks.Result {
+	self.hovered = true;
+	gui.hoveredItemSlot = self;
+	return .handled;
+}
+
+pub fn mainButtonPressed(self: *ItemSlot, _: Vec2f) main.callbacks.Result {
+	self.pressed = true;
+	return .handled;
+}
+
+pub fn mainButtonReleased(self: *ItemSlot, _: Vec2f) void {
+	if (self.pressed) {
+		self.pressed = false;
+	}
+}
+
+pub fn render(self: *ItemSlot, _: Vec2f) void {
+	self.refreshText();
+	if (self.renderFrame and self.texture != null) {
+		self.texture.?.bindTo(0);
+		draw.boundImage(self.pos, self.size);
+	}
+	const item = self.inventory.getItem(self.itemSlot);
+	if (item != .null) {
+		item.render(self.pos, self.size, border);
+		const shouldRenderStackSizeText = item.stackSize() > 1 and self.inventory.type != .creative;
+		if (shouldRenderStackSizeText) {
+			self.text.render(self.pos[0] + self.size[0] - self.textSize[0] - border, self.pos[1] + self.size[1] - self.textSize[1] - border, 8);
+		}
+	}
+	if (self.mode != .immutable) {
+		if (self.hovered) {
+			self.hovered = false;
+			const oldColor = draw.setColor(0x300000ff);
+			defer draw.restoreColor(oldColor);
+			draw.rect(self.pos, self.size);
+		}
+	}
+}

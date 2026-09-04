@@ -1,0 +1,40 @@
+.{
+	.tags = .{.mineable},
+	.blockHealth = 15,
+	.blockResistance = 3,
+	.item = .{
+		.texture = "amber.png",
+		.colorTexture = "amber_ore_palette.png",
+		.material = .{
+			.durability = 140,
+			.massDamage = 0.1,
+			.hardnessDamage = 2.3,
+			.swingSpeed = 8.5,
+			.textureRoughness = 0.1,
+			.modifiers = .{
+				.{
+					.id = "light",
+					.strength = 0.5,
+					.restriction = .{
+						.id = .encased,
+						.tag = .precious,
+						.amount = 4,
+					},
+				},
+			},
+		},
+	},
+	.ore = .{
+		.veins = 3,
+		.size = 3,
+		.maxHeight = -1250,
+		.minHeight = -8000,
+		.density = 0.15,
+	},
+	.drops = .{
+		.{.items = .{.auto}},
+	},
+	.rotation = "cubyz:ore",
+	.model = "cubyz:cube",
+	.texture = "cubyz:amber_ore",
+}

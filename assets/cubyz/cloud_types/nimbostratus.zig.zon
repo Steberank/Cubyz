@@ -1,0 +1,52 @@
+.{
+	.noiseLayers = .{
+		.{
+			.height = 96,
+			.heightOffset = 0,
+			.scaleX = 400,
+			.scaleY = 400,
+			.scaleZ = 400,
+			.valueOffset = 1,
+			.valueScale = 1,
+			.fadeDistance = 16,
+		},
+		.{
+			.height = 64,
+			.heightOffset = 64,
+			.scaleX = 400,
+			.scaleY = 400,
+			.scaleZ = 400,
+			.valueOffset = 2,
+			.valueScale = 1,
+			.fadeDistance = 16,
+		},
+		.{
+			.height = 128,
+			.heightOffset = 0,
+			.scaleX = 50,
+			.scaleY = 50,
+			.scaleZ = 50,
+			.valueOffset = 0,
+			.valueScale = 0.3,
+			.fadeDistance = 10,
+		},
+	},
+
+	.weather = .thunderstorm,
+	.storminess = 0.5,
+	.stormStart = 16,
+	.stormFadeDistance = 128,
+	.transparencyFade = 0,
+
+	.spawning = .{
+		.weight = 3,
+		.orderWeight = 900,
+		.minRadius = 5000,
+		.maxRadius = 8000,
+		.minSpeed = 4.8,
+		.maxSpeed = 12.8,
+		.minStretch = 0.25,
+		.maxStretch = 0.5,
+		.movesTowardsPlayer = true,
+	},
+}

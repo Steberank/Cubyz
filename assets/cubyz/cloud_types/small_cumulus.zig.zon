@@ -1,0 +1,32 @@
+.{
+	.noiseLayers = .{
+		.{
+			.height = 32,
+			.heightOffset = 0,
+			.scaleX = 30,
+			.scaleY = 30,
+			.scaleZ = 10,
+			.valueOffset = -0.5,
+			.valueScale = 1,
+			.fadeDistance = 10,
+		},
+	},
+
+	.weather = .none,
+	.storminess = 0.1,
+	.stormStart = 10,
+	.stormFadeDistance = 16,
+	.transparencyFade = 0.1,
+
+	.spawning = .{
+		.weight = 10,
+		.orderWeight = 500,
+		.minRadius = 4000,
+		.maxRadius = 10000,
+		.minSpeed = 16.0,
+		.maxSpeed = 32.0,
+		.minStretch = 1,
+		.maxStretch = 1,
+		.movesTowardsPlayer = false,
+	},
+}

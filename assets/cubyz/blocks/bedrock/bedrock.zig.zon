@@ -1,0 +1,12 @@
+.{
+	.tags = .{.unbreakable, .stone},
+	.name = "Bedrock",
+	.blockHealth = 1e30,
+	.blockResistance = 1e30,
+	.degradable = false,
+	.allowOres = false,
+	.drops = .{},
+	.model = "cubyz:cube",
+	.rotation = "cubyz:no_rotation",
+	.texture = "cubyz:bedrock/bedrock",
+}

@@ -1,0 +1,44 @@
+.{
+	// Noise layers are summed. `scaleZ` is the vertical axis, `height` and
+	// `heightOffset` are measured in cloud space units above the cloud layer.
+	.noiseLayers = .{
+		.{
+			.height = 32,
+			.heightOffset = 16,
+			.scaleX = 50,
+			.scaleY = 50,
+			.scaleZ = 100,
+			.valueOffset = -0.5,
+			.valueScale = 1,
+			.fadeDistance = 8,
+		},
+		.{
+			.height = 32,
+			.heightOffset = 16,
+			.scaleX = 10,
+			.scaleY = 10,
+			.scaleZ = 10,
+			.valueOffset = 0,
+			.valueScale = 0.5,
+			.fadeDistance = 10,
+		},
+	},
+
+	.weather = .none,
+	.storminess = 0.2,
+	.stormStart = 16,
+	.stormFadeDistance = 16,
+	.transparencyFade = 0.2,
+
+	.spawning = .{
+		.weight = 12,
+		.orderWeight = 600,
+		.minRadius = 6000,
+		.maxRadius = 10000,
+		.minSpeed = 16.0,
+		.maxSpeed = 32.0,
+		.minStretch = 1,
+		.maxStretch = 1,
+		.movesTowardsPlayer = false,
+	},
+}

@@ -1,0 +1,23 @@
+.{
+	.{
+		.inputs = .{"cubyz:{item}/smooth"},
+		.output = "cubyz:{item}/rough",
+		.reversible = true,
+	},
+	.{
+		.inputs = .{"cubyz:{item}/smooth"},
+		.output = "cubyz:{item}/tile",
+	},
+	.{
+		.inputs = .{"cubyz:{item}/smooth"},
+		.output = "cubyz:{item}/bricks",
+	},
+	.{
+		.inputs = .{"cubyz:{item}/smooth"},
+		.output = "2 cubyz:{item}/wall",
+	},
+	.{
+		.inputs = .{"cubyz:{item}/smooth"},
+		.output = "cubyz:{item}/pillar",
+	},
+}

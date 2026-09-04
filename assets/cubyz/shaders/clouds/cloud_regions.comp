@@ -1,0 +1,75 @@
+#version 460
+
+// Rasterizes the cloud regions into a lookup texture.
+//
+// Each region is an ellipse (a circle deformed by a 2x2 transform) that claims a
+// patch of the world for one cloud type. The output is one texture slice per LOD
+// level, where red holds the cloud type index and green holds an edge fade factor
+// that is 0 in the middle of a region and approaches 1 at its rim.
+//
+// Coordinates are horizontal cloud space (Cubyz is Z-up, so regions live in XY),
+// relative to the mesh generation grid origin. The mesh generator samples this
+// texture in the same frame of reference.
+
+#define EDGE_FADE_FACTOR 0.005
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+struct CloudRegion {
+	float posX;
+	float posY;
+	float index;
+	float radius;
+	mat2 transform;
+};
+
+layout(std430, binding = 28) readonly buffer _cloudRegions {
+	CloudRegion cloudRegions[];
+};
+
+layout(std430, binding = 29) readonly buffer _lodScales {
+	float lodScales[];
+};
+
+layout(rg32f, binding = 0) writeonly restrict uniform image2DArray regionTexture;
+
+layout(location = 0) uniform int totalCloudRegions;
+
+/// Returns (inner weight, outer weight, type index), or a negative x/y when the
+/// coordinate is entirely outside the region's influence.
+vec3 regionAt(CloudRegion region, vec2 coord) {
+	vec2 p = vec2(region.posX, region.posY);
+	coord = region.transform*(coord - p) + p;
+	float d = distance(p, coord);
+	float r = region.radius;
+	if(d > r + 1.0/EDGE_FADE_FACTOR) return vec3(-1.0);
+	if(d < r) return vec3(min((r - d)*EDGE_FADE_FACTOR, 1.0), 0.0, region.index);
+	return vec3(0.0, min((d - r)*EDGE_FADE_FACTOR, 1.0), region.index);
+}
+
+vec2 composite(vec2 old, vec3 data) {
+	if(data.r > 0.0) {
+		if(old.r >= 0.0 && old.r == data.b) return vec2(old.r, mix(old.g, 1.0, data.r));
+		return data.br;
+	}
+	if(data.g >= 0.0) {
+		if(old.r >= 0.0 && old.r == data.b) return old;
+		return vec2(old.r, old.g*data.g);
+	}
+	return old;
+}
+
+void main() {
+	uint lod = gl_GlobalInvocationID.z;
+	float coordScale = lodScales[lod];
+	vec2 centerOffset = vec2(imageSize(regionTexture).xy)/2.0;
+	ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+	vec2 coord = (vec2(gl_GlobalInvocationID.xy) - centerOffset)*coordScale;
+
+	vec2 result = vec2(0.0);
+	for(int i = 0; i < totalCloudRegions; i++) {
+		result = composite(result, regionAt(cloudRegions[i], coord));
+	}
+
+	imageStore(regionTexture, ivec3(texelCoord, int(lod)), vec4(result, 0.0, 0.0));
+}

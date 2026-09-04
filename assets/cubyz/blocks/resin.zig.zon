@@ -1,0 +1,21 @@
+.{
+	.tags = .{.choppable},
+	.blockHealth = 1,
+	.drops = .{
+		.{.items = .{.auto}},
+	},
+	.rotation = "cubyz:ore",
+	.model = "cubyz:cube",
+	.texture = "cubyz:resin",
+	.item = .{
+		.texture = "resin.png",
+		.colorTexture = "resin_palette.png",
+		.material = .{
+			.durability = 200,
+			.massDamage = 1.2,
+			.hardnessDamage = 0.8,
+			.swingSpeed = 5.1,
+			.textureRoughness = 0.1,
+		},
+	},
+}

@@ -1,0 +1,9 @@
+.{
+	// Expanding ring where rain hits water. Neutrally buoyant so it stays put
+	// while the four animation frames play out once over its lifetime.
+	.texture = "cubyz:rain_ripple",
+	.size = 0.22,
+	.density = .{0.001, 0.001},
+	.rotationVelocity = .{0, 0},
+	.dragCoefficient = .{2, 2},
+}

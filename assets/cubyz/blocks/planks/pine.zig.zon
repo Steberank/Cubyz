@@ -1,0 +1,20 @@
+.{
+	.item = .{
+		.colorTexture = "pine_planks_palette.png",
+		.material = .{
+			.durability = 20,
+			.massDamage = 0.75,
+			.hardnessDamage = 0.75,
+			.swingSpeed = 4.4,
+			.textureRoughness = 0.7,
+			.modifiers = .{
+				.{
+					.id = "durable",
+					.strength = 0.4,
+				},
+			},
+		},
+	},
+
+	.texture = "cubyz:planks/pine",
+}
