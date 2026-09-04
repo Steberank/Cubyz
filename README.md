@@ -27,6 +27,6 @@ However, both of them lost interest at some point, and now Cubyz is maintained b
  GPU Rendered Realstic Clouds, testing comands:
  - "/clouds": lists all new clouds
  - "/cloud clear": removes all clouds from sky
- - "cloud set cloud_name": spawns clouds in sky
+ - "/cloud set cloud_name": spawns clouds in sky
 
  More content in the future. Most new content is vibe-coded, this is just a fun side project to play with friends.
