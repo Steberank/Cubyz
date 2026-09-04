@@ -24,9 +24,16 @@ Originally Cubyz was created on August 22, 2018 by <img src="https://avatars.git
 However, both of them lost interest at some point, and now Cubyz is maintained by <img src="https://avatars.githubusercontent.com/u/43880493" width="20" height="20">[IntegratedQuantum](https://github.com/IntegratedQuantum).
 
 # My Additions
- GPU Rendered Realstic Clouds, testing comands:
+ GPU Rendered Realstic Clouds, made with Claude Opus 5, Max Effort, 1 Million Context, testing comands:
  - "/clouds": lists all new clouds
  - "/cloud clear": removes all clouds from sky
  - "/cloud set cloud_name": spawns clouds in sky
+   
+The folllowing Documentations were feed to AI to develop this feature:
+- https://github.com/stegu/psrdnoise/
+- https://github.com/stegu/webgl-noise
+- https://gist.github.com/davidar/5f9677a0ccfbd63d7a8657ad9af3a856
+- https://jcgt.org/published/0002/02/09/paper.pdf
+- https://casual-effects.blogspot.com/2015/03/implemented-weighted-blended-order.html
 
- More content in the future. Most new content is vibe-coded, this is just a fun side project to play with friends.
+ More content in the future. Most new content is vibe-coded, this is just a fun side project to play with friends and test AI capabilities.
